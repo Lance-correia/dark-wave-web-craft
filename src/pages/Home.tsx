@@ -16,9 +16,9 @@ export default function Home() {
         <div className="container relative z-10 flex flex-col-reverse md:flex-row items-center justify-center gap-8 md:gap-16 pt-16">
           <div className="flex-1 text-center md:text-left">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
-              <span className="text-gradient">John Doe</span>
+              <span className="text-gradient">Lance Correia</span>
               <br />
-              <span>Frontend Developer</span>
+              <span>Full Stack Engineer</span>
             </h1>
             
             <p className="text-xl text-muted-foreground mb-8 max-w-xl">

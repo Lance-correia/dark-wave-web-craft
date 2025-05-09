@@ -22,8 +22,10 @@ export default function Home() {
             </h1>
             
             <p className="text-xl text-muted-foreground mb-8 max-w-xl">
-              I build accessible, user-friendly web applications with modern technologies.
-              Specializing in React, TypeScript, and responsive design.
+              I build Fun, user-friendly projects and web applications with whatever tools i can get my hands on.
+              Specializing in DIY projects and building things on the cheap.
+              I'm also a huge nerd and love to learn new things.
+              Full Stack Engineer by day, hobbyist by night.
             </p>
             
             <div className="flex flex-wrap gap-4 justify-center md:justify-start">

@@ -1,21 +1,58 @@
-
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import { blogPosts } from "@/data/blog"
+import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+
+interface Post {
+  id: string
+  title: string
+  slug: string
+  content: string
+  excerpt: string
+  coverImage: string
+  author: string
+  date: string
+  tags: string[]
+}
 
 export default function Blog() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
   
+  const { data: posts = [], isLoading, error } = useQuery<Post[]>({
+    queryKey: ['posts'],
+    queryFn: async () => {
+      try {
+        console.log('Fetching posts...');
+        const response = await fetch('http://localhost:3001/api/posts');
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+          const errorData = await response.text();
+          console.error('Error response:', errorData);
+          throw new Error(`Failed to fetch posts: ${response.status} ${errorData}`);
+        }
+        
+        const data = await response.json();
+        console.log('Fetched posts:', data);
+        return data;
+      } catch (err) {
+        console.error('Error in queryFn:', err);
+        throw err;
+      }
+    },
+    retry: 1,
+    refetchOnWindowFocus: false
+  })
+  
   // Extract unique tags from blog posts
   const tags = Array.from(
-    new Set(blogPosts.flatMap(post => post.tags))
+    new Set(posts.flatMap(post => post.tags))
   ).sort()
   
   // Filter blog posts based on search query and selected tag
-  const filteredPosts = blogPosts.filter(post => {
+  const filteredPosts = posts.filter(post => {
     const matchesSearch = searchQuery === "" || 
       post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       post.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -25,6 +62,34 @@ export default function Blog() {
     
     return matchesSearch && matchesTag;
   });
+  
+  if (isLoading) {
+    return (
+      <div className="container py-16 mt-20">
+        <div className="text-center">Loading posts...</div>
+      </div>
+    )
+  }
+  
+  if (error) {
+    return (
+      <div className="container py-16 mt-20">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">Error loading posts</div>
+          <div className="text-sm text-muted-foreground">
+            {error instanceof Error ? error.message : 'Unknown error occurred'}
+          </div>
+          <Button 
+            variant="outline"
+            className="mt-4"
+            onClick={() => window.location.reload()}
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    )
+  }
   
   return (
     <div className="container py-16 mt-20">

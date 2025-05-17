@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import ReactMarkdown from "react-markdown"
 import { Button } from "@/components/ui/button"
 import { Link } from "react-router-dom"
+import { posts as staticPosts } from "@/data/blog"
 
 interface Post {
   id: string
@@ -17,28 +18,10 @@ interface Post {
 }
 
 export default function BlogPost() {
-  const { slug } = useParams()
-  
-  const { data: post, isLoading, error } = useQuery<Post>({
-    queryKey: ['post', slug],
-    queryFn: async () => {
-      const response = await fetch(`http://localhost:3001/api/posts/${slug}`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch post')
-      }
-      return response.json()
-    }
-  })
-  
-  if (isLoading) {
-    return (
-      <div className="container py-16 mt-20">
-        <div className="text-center">Loading post...</div>
-      </div>
-    )
-  }
-  
-  if (error || !post) {
+  const { slug } = useParams();
+  const post = staticPosts.find((p) => p.slug === slug);
+
+  if (!post) {
     return (
       <div className="container py-16 mt-20">
         <div className="text-center">
@@ -50,7 +33,7 @@ export default function BlogPost() {
       </div>
     )
   }
-  
+
   return (
     <div className="container py-16 mt-20">
       {/* Back button */}

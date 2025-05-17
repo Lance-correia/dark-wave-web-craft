@@ -1,8 +1,9 @@
-import { useState } from "react"
-import { Link } from "react-router-dom"
-import { useQuery } from "@tanstack/react-query"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEffect, useState } from "react"
+import { Link, useSearchParams } from "react-router-dom"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { posts as staticPosts } from "@/data/blog"
 
 interface Post {
   id: string
@@ -17,234 +18,100 @@ interface Post {
 }
 
 export default function Blog() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedTag, setSelectedTag] = useState<string | null>(null)
-  
-  const { data: posts = [], isLoading, error } = useQuery<Post[]>({
-    queryKey: ['posts'],
-    queryFn: async () => {
-      try {
-        console.log('Fetching posts...');
-        const response = await fetch('http://localhost:3001/api/posts');
-        console.log('Response status:', response.status);
-        
-        if (!response.ok) {
-          const errorData = await response.text();
-          console.error('Error response:', errorData);
-          throw new Error(`Failed to fetch posts: ${response.status} ${errorData}`);
-        }
-        
-        const data = await response.json();
-        console.log('Fetched posts:', data);
-        return data;
-      } catch (err) {
-        console.error('Error in queryFn:', err);
-        throw err;
-      }
-    },
-    retry: 1,
-    refetchOnWindowFocus: false
-  })
-  
-  // Extract unique tags from blog posts
-  const tags = Array.from(
-    new Set(posts.flatMap(post => post.tags))
-  ).sort()
-  
-  // Filter blog posts based on search query and selected tag
-  const filteredPosts = posts.filter(post => {
-    const matchesSearch = searchQuery === "" || 
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.content.toLowerCase().includes(searchQuery.toLowerCase());
-      
-    const matchesTag = selectedTag === null || post.tags.includes(selectedTag);
-    
-    return matchesSearch && matchesTag;
-  });
-  
-  if (isLoading) {
-    return (
-      <div className="container py-16 mt-20">
-        <div className="text-center">Loading posts...</div>
-      </div>
-    )
-  }
-  
-  if (error) {
-    return (
-      <div className="container py-16 mt-20">
-        <div className="text-center">
-          <div className="text-red-500 mb-4">Error loading posts</div>
-          <div className="text-sm text-muted-foreground">
-            {error instanceof Error ? error.message : 'Unknown error occurred'}
-          </div>
-          <Button 
-            variant="outline"
-            className="mt-4"
-            onClick={() => window.location.reload()}
-          >
-            Try Again
-          </Button>
-        </div>
-      </div>
-    )
-  }
-  
+  // Use static posts data
+  const posts = staticPosts;
+
   return (
-    <div className="container py-16 mt-20">
-      <h1 className="text-4xl font-bold mb-6">Blog</h1>
-      <p className="text-xl text-muted-foreground max-w-3xl mb-10">
-        Thoughts, insights, and tutorials about web development, design patterns, and the latest technologies.
-      </p>
+    <section className="container py-16 mt-20">
+      <div className="mb-8 flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Blog</h1>
+        <SearchBar />
+      </div>
       
-      {/* Search and Filter */}
-      <div className="mb-10 space-y-4">
-        {/* Search */}
-        <div>
-          <input
-            type="text"
-            placeholder="Search articles..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 bg-secondary/70 rounded-md border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {posts.map((post) => (
+          <PostCard key={post.id} post={post} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PostCard({ post }: { post: Post }) {
+  return (
+    <Card className="bg-secondary/50">
+      <CardHeader>
+        <CardTitle>{post.title}</CardTitle>
+        <CardDescription>{post.excerpt}</CardDescription>
+      </CardHeader>
+      
+      <CardContent>
+        <div className="w-full aspect-[21/9] relative overflow-hidden rounded-md">
+          <img 
+            src={post.coverImage} 
+            alt={post.title}
+            className="w-full h-full object-cover"
           />
         </div>
         
-        {/* Tag Filters */}
-        <div>
-          <h2 className="text-lg font-medium mb-3">Filter by topic:</h2>
-          <div className="flex flex-wrap gap-2">
-            <Button 
-              variant={selectedTag === null ? "gradient" : "outline"} 
-              size="sm"
-              onClick={() => setSelectedTag(null)}
-            >
-              All Topics
-            </Button>
-            
-            {tags.map(tag => (
-              <Button
-                key={tag}
-                variant={selectedTag === tag ? "gradient" : "outline"}
-                size="sm"
-                onClick={() => setSelectedTag(tag)}
-              >
-                {tag}
-              </Button>
-            ))}
-          </div>
+        <div className="flex items-center space-x-2 text-sm text-muted-foreground mt-4">
+          <span>{new Date(post.date).toLocaleDateString("en-US", { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })}</span>
+          <span>•</span>
+          <span>{post.author}</span>
         </div>
-      </div>
+      </CardContent>
       
-      {/* Blog Posts Grid */}
-      {filteredPosts.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredPosts.map(post => (
-            <Link key={post.id} to={`/blog/${post.slug}`} className="group">
-              <Card className="glass-card overflow-hidden hover-scale h-full flex flex-col">
-                <div className="aspect-video relative overflow-hidden">
-                  <img 
-                    src={post.coverImage} 
-                    alt={post.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-                
-                <CardHeader>
-                  <div className="flex items-center space-x-2 text-sm text-muted-foreground mb-2">
-                    <span>{new Date(post.date).toLocaleDateString("en-US", { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}</span>
-                    <span>•</span>
-                    <span>{post.author}</span>
-                  </div>
-                  
-                  <CardTitle className="group-hover:text-primary transition-colors">
-                    {post.title}
-                  </CardTitle>
-                </CardHeader>
-                
-                <CardContent className="flex-grow">
-                  <p className="text-muted-foreground line-clamp-3">
-                    {post.excerpt}
-                  </p>
-                  
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    {post.tags.slice(0, 3).map(tag => (
-                      <span 
-                        key={tag} 
-                        className="bg-secondary text-xs px-2 py-1 rounded-full"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setSelectedTag(tag);
-                        }}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                  
-                  <div className="mt-4 text-primary font-medium flex items-center">
-                    Read more
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      width="16" 
-                      height="16" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
-                      className="ml-1 transition-transform group-hover:translate-x-1"
-                    >
-                      <path d="M5 12h14"/>
-                      <path d="m12 5 7 7-7 7"/>
-                    </svg>
-                  </div>
-                </CardContent>
-              </Card>
+      <CardFooter className="flex justify-between items-center">
+        <div className="flex flex-wrap gap-2">
+          {post.tags.map(tag => (
+            <Link 
+              key={tag}
+              to={`/blog?tag=${tag}`}
+              className="bg-accent hover:bg-accent-foreground/10 text-accent-foreground px-2 py-1 rounded-full text-xs"
+            >
+              {tag}
             </Link>
           ))}
         </div>
-      ) : (
-        <div className="text-center py-12">
-          <p className="text-lg text-muted-foreground">No articles found for your search.</p>
-          <Button 
-            variant="outline"
-            className="mt-4"
-            onClick={() => {
-              setSearchQuery("");
-              setSelectedTag(null);
-            }}
-          >
-            Clear Filters
-          </Button>
-        </div>
-      )}
-      
-      {/* Newsletter */}
-      <section className="mt-20 py-12 bg-secondary/50 rounded-lg text-center">
-        <h2 className="text-2xl font-bold mb-4">Subscribe to my newsletter</h2>
-        <p className="text-lg text-muted-foreground mb-6 max-w-xl mx-auto">
-          Get the latest articles and news delivered directly to your inbox.
-        </p>
         
-        <form className="max-w-md mx-auto flex flex-col sm:flex-row gap-3">
-          <input
-            type="email"
-            placeholder="Enter your email"
-            className="flex-grow px-4 py-2 bg-background/70 rounded-md border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-            required
-          />
-          <Button type="submit" variant="gradient">
-            Subscribe
-          </Button>
-        </form>
-      </section>
-    </div>
+        <Button asChild variant="outline" size="sm">
+          <Link to={`/blog/${post.slug}`}>Read More</Link>
+        </Button>
+      </CardFooter>
+    </Card>
   )
+}
+
+function SearchBar() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
+  
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (searchTerm) {
+        setSearchParams({ search: searchTerm });
+      } else {
+        // Clear the search parameter when the search term is empty
+        searchParams.delete('search');
+        setSearchParams(searchParams);
+      }
+    }, 500)
+
+    return () => clearTimeout(delayDebounceFn)
+  }, [searchTerm, setSearchParams]);
+
+  return (
+    <div className="max-w-sm">
+      <Input
+        type="search"
+        placeholder="Search posts..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+    </div>
+  );
 }
